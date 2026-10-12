@@ -1,5 +1,5 @@
-// Package provider implements Silo's watch_sync_provider.v1 contract for
-// Simkl. It is a port of the Simkl provider that Silo used to build in, and
+// Package provider implements Prairie's watch_sync_provider.v1 contract for
+// Simkl. It is a port of the Simkl provider that Prairie used to build in, and
 // keeps that provider's item keys, cursors, and upstream requests so existing
 // connections carry over.
 package provider
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	pluginv1 "github.com/prairie-server/prairie-plugin-sdk/pkg/pluginproto/prairie/plugin/v1"
 )
 
 const (

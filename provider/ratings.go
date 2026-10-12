@@ -7,18 +7,18 @@ import (
 	"strings"
 	"time"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	pluginv1 "github.com/prairie-server/prairie-plugin-sdk/pkg/pluginproto/prairie/plugin/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Simkl rates on the integer 1 to 10 scale the plugin contract uses, so
 // ratings pass through unchanged. Only movie and show ratings exist on Simkl;
-// Silo rates movies and series, so nothing else is read or written.
+// Prairie rates movies and series, so nothing else is read or written.
 //
 // Simkl keeps anime, anime movies included, in a separate anime domain with its
-// own rated_at activity. Anime movies are movies to Silo and every other anime
+// own rated_at activity. Anime movies are movies to Prairie and every other anime
 // entry is a series (see animeRatingIdentity), so the anime ratings belong to
-// both Silo kinds.
+// both Prairie kinds.
 
 const (
 	cursorRatingsMovies = "simkl.ratings.movies"
@@ -30,7 +30,7 @@ const (
 	simklTypeShows  = "shows"
 	simklTypeAnime  = "anime"
 
-	// The anime_type values that name a Silo kind outright.
+	// The anime_type values that name a Prairie kind outright.
 	simklAnimeTypeMovie = "movie"
 	simklAnimeTypeTV    = "tv"
 
@@ -70,7 +70,7 @@ type simklRatingItem struct {
 	IDs     simklIDs `json:"ids"`
 }
 
-// simklRatingsPayload sends Silo series as shows, anime included: Simkl
+// simklRatingsPayload sends Prairie series as shows, anime included: Simkl
 // resolves an anime title under shows as well as under anime.
 type simklRatingsPayload struct {
 	Movies []simklRatingItem `json:"movies,omitempty"`
@@ -100,7 +100,7 @@ func ratingsChanged(previous, activity string) bool {
 
 // readRatings reads the movie, show, and anime rating lists in full, never
 // with date_from: a delta cannot show a removed rating. complete reports
-// whether the rows are every rating of both Silo kinds.
+// whether the rows are every rating of both Prairie kinds.
 //
 // The built-in provider could declare movies and series complete separately.
 // A plugin traversal is complete for both kinds or neither, so the rows are a
@@ -207,7 +207,7 @@ func kindName(kind pluginv1.WatchSyncMediaType) string {
 	return "series"
 }
 
-// typedAnime reports whether an anime_type names a Silo kind outright.
+// typedAnime reports whether an anime_type names a Prairie kind outright.
 func typedAnime(animeType string) bool {
 	switch strings.ToLower(strings.TrimSpace(animeType)) {
 	case simklAnimeTypeMovie, simklAnimeTypeTV:
@@ -217,7 +217,7 @@ func typedAnime(animeType string) bool {
 	}
 }
 
-// animeRatingIdentity returns the Silo kind and the ids of a rated anime entry
+// animeRatingIdentity returns the Prairie kind and the ids of a rated anime entry
 // from its anime_type. A "movie" is a movie and a "tv" entry a series, each
 // with every id. Any other type (ova, ona, special, music video) or a missing
 // one is a series without its TMDB id: such an entry can carry a TMDB movie
