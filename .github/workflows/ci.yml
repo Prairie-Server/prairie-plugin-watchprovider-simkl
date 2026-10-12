@@ -33,7 +33,6 @@ jobs:
 
       - name: Configure private module resolution
         run: |
-          go env -w GOPROXY=direct
           go env -w GOPRIVATE=github.com/prairie-server/*
           go env -w GONOSUMDB=github.com/prairie-server/*
 
@@ -61,7 +60,6 @@ jobs:
 
       - name: Configure private module resolution
         run: |
-          go env -w GOPROXY=direct
           go env -w GOPRIVATE=github.com/prairie-server/*
           go env -w GONOSUMDB=github.com/prairie-server/*
 
