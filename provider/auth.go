@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	pluginv1 "github.com/prairie-server/prairie-plugin-sdk/pkg/pluginproto/prairie/plugin/v1"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -193,7 +193,7 @@ func (d *deviceAuthServer) pollV2(ctx context.Context, clientID string, state si
 		}
 		if !slices.Contains(strings.Fields(token.Scope), v2WriteScope) {
 			return &pluginv1.WatchSyncDeviceAuthorizationServicePollResponse{
-				Fault: permissionDeniedFault("Simkl granted read-only access, and Silo needs to write watch history; connect Simkl again"),
+				Fault: permissionDeniedFault("Simkl granted read-only access, and Prairie needs to write watch history; connect Simkl again"),
 			}
 		}
 		credentials := d.server.v2Credentials(token, clientID, "")

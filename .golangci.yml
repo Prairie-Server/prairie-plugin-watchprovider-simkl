@@ -1,0 +1,29 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/prairie-server/prairie-plugin-watchprovider-simkl
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - unused
+
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck

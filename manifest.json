@@ -1,8 +1,8 @@
 {
-  "plugin_id": "silo.watchprovider.simkl",
+  "plugin_id": "prairie.watchprovider.simkl",
   "version": "0.4.0",
   "checksum": "__CHECKSUM__",
-  "silo_api_version": "v1",
+  "prairie_api_version": "v1",
   "supported_platforms": [
     { "os": "darwin", "arch": "arm64" },
     { "os": "linux", "arch": "amd64" },
@@ -78,15 +78,15 @@
   "category": "Watch Providers",
   "presentation": {
     "display_name": "Simkl Watch Provider",
-    "summary": "Sync Silo watch history, plan-to-watch list, dropped shows, and ratings with Simkl.",
+    "summary": "Sync Prairie watch history, plan-to-watch list, dropped shows, and ratings with Simkl.",
     "description_markdown": "Imports watched movies and episodes, resume progress, the plan-to-watch list, dropped shows, and movie and series ratings from Simkl, anime included. Exports watched and unwatched titles, plan-to-watch changes, dropped shows, and ratings, and forwards live playback start, pause, and stop events. A movie rating is sent once the profile has watched the movie.",
-    "setup_markdown": "Create an app at [simkl.com/settings/developer](https://simkl.com/settings/developer/), choosing the **TV, devices & command line** type, and enter its client ID in this plugin's settings. Then connect each Silo profile from its watch-provider settings: Silo shows a code to enter at simkl.com/pin. If profiles already connected through an older AUTH V1 app, keep its client ID and enter the new app's client ID as the AUTH V2 client ID instead.",
+    "setup_markdown": "Create an app at [simkl.com/settings/developer](https://simkl.com/settings/developer/), choosing the **TV, devices & command line** type, and enter its client ID in this plugin's settings. Then connect each Prairie profile from its watch-provider settings: Prairie shows a code to enter at simkl.com/pin. If profiles already connected through an older AUTH V1 app, keep its client ID and enter the new app's client ID as the AUTH V2 client ID instead.",
     "homepage_url": "https://simkl.com",
-    "source_url": "https://github.com/Silo-Server/silo-plugin-watchprovider-simkl",
-    "support_url": "https://github.com/Silo-Server/silo-plugin-watchprovider-simkl/issues",
-    "changelog_url": "https://github.com/Silo-Server/silo-plugin-watchprovider-simkl/releases",
-    "publisher_name": "Silo Server",
-    "publisher_url": "https://github.com/Silo-Server",
+    "source_url": "https://github.com/prairie-server/prairie-plugin-watchprovider-simkl",
+    "support_url": "https://github.com/prairie-server/prairie-plugin-watchprovider-simkl/issues",
+    "changelog_url": "https://github.com/prairie-server/prairie-plugin-watchprovider-simkl/releases",
+    "publisher_name": "Prairie",
+    "publisher_url": "https://github.com/prairie-server",
     "license_spdx": "AGPL-3.0-only"
   }
 }

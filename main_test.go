@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	"github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/manifest"
+	pluginv1 "github.com/prairie-server/prairie-plugin-sdk/pkg/pluginproto/prairie/plugin/v1"
+	"github.com/prairie-server/prairie-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestManifestDeclaresTheSimklProvider(t *testing.T) {
@@ -13,7 +13,7 @@ func TestManifestDeclaresTheSimklProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load manifest: %v", err)
 	}
-	if parsed.GetPluginId() != "silo.watchprovider.simkl" || parsed.GetVersion() != "0.4.0" {
+	if parsed.GetPluginId() != "prairie.watchprovider.simkl" || parsed.GetVersion() != "0.4.0" {
 		t.Fatalf("plugin = %q %q", parsed.GetPluginId(), parsed.GetVersion())
 	}
 	capabilities := parsed.GetCapabilities()
@@ -21,7 +21,7 @@ func TestManifestDeclaresTheSimklProvider(t *testing.T) {
 		t.Fatalf("capabilities = %d, want 1", len(capabilities))
 	}
 	capability := capabilities[0]
-	// The display name matches Silo's former built-in Simkl provider.
+	// The display name matches Prairie's former built-in Simkl provider.
 	if capability.GetType() != "watch_sync_provider.v1" || capability.GetId() != "simkl" || capability.GetDisplayName() != "Simkl" {
 		t.Fatalf("capability = %q %q %q", capability.GetType(), capability.GetId(), capability.GetDisplayName())
 	}

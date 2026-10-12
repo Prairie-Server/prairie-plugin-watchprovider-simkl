@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	pluginv1 "github.com/prairie-server/prairie-plugin-sdk/pkg/pluginproto/prairie/plugin/v1"
 )
 
 // historyTimePrecision is how finely a local play's time must match Simkl's
@@ -68,7 +68,7 @@ func localPlayFromEvent(event *pluginv1.WatchSyncEvent) (localPlay, *pluginv1.Wa
 	return play, nil
 }
 
-// localPlayKey is the key Silo gives a local play when the event carries
+// localPlayKey is the key Prairie gives a local play when the event carries
 // none. It mirrors the host's providerItemKeyForLocalPlay.
 func localPlayKey(play localPlay) string {
 	if play.kind == pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_EPISODE {

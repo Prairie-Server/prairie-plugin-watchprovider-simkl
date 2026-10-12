@@ -130,7 +130,7 @@ type simklShow struct {
 	IDs   simklIDs `json:"ids"`
 }
 
-// simklIDs holds the ids Silo uses. Simkl sends numeric ids as numbers or as
+// simklIDs holds the ids Prairie uses. Simkl sends numeric ids as numbers or as
 // strings depending on the endpoint, so decoding accepts both.
 type simklIDs struct {
 	Simkl int    `json:"simkl,omitempty"`
@@ -203,8 +203,8 @@ type simklListItem struct {
 	IDs simklIDs `json:"ids"`
 }
 
-// movieKey, showKey, and episodeKey produce the provider item keys Silo stores
-// per item. They match the keys of Silo's former built-in Simkl provider byte
+// movieKey, showKey, and episodeKey produce the provider item keys Prairie stores
+// per item. They match the keys of Prairie's former built-in Simkl provider byte
 // for byte, so connections migrated from it keep their stored rows.
 func movieKey(ids simklIDs) string {
 	switch {
@@ -256,7 +256,7 @@ func episodeKey(showIDs simklIDs, season, episode int, episodeIDs simklIDs) stri
 }
 
 // episodeNumbers prefers the TVDB numbering Simkl reports for an episode, which
-// is how anime episodes line up with Silo's TVDB-ordered seasons.
+// is how anime episodes line up with Prairie's TVDB-ordered seasons.
 func episodeNumbers(episode simklEpisode, seasonFallback int) (int, int) {
 	season := episode.TVDB.Season
 	number := episode.TVDB.Episode

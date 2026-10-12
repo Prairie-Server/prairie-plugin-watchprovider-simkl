@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	pluginv1 "github.com/prairie-server/prairie-plugin-sdk/pkg/pluginproto/prairie/plugin/v1"
 )
 
 // rewatchFake answers the watched reads with empty lists and records each
@@ -64,7 +64,7 @@ func TestMarkWatchedSendsRewatchesOnlyWhenTheProfileTurnedThemOn(t *testing.T) {
 		settings map[string]string
 		wantURI  string
 	}{
-		// An older Silo server sends no connection settings.
+		// An older Prairie server sends no connection settings.
 		{name: "no settings", settings: nil, wantURI: "/sync/history"},
 		{name: "off", settings: map[string]string{settingTrackRewatches: "false"}, wantURI: "/sync/history"},
 		{name: "on", settings: map[string]string{settingTrackRewatches: "true"}, wantURI: "/sync/history?allow_rewatch=yes"},
