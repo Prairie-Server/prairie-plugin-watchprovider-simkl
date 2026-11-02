@@ -1,6 +1,6 @@
 {
   "plugin_id": "prairie.watchprovider.simkl",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "checksum": "__CHECKSUM__",
   "prairie_api_version": "v1",
   "supported_platforms": [
@@ -67,7 +67,7 @@
           {
             "key": "track_rewatches",
             "label": "Log rewatches",
-            "description": "Send another play of a title you already watched to Simkl as a rewatch. Needs Simkl PRO or VIP and Send watched changes; a free account records nothing extra.",
+            "description": "Send another play of a title you already watched to Simkl as a rewatch. Applies to exported plays and finished playback. Needs Simkl PRO or VIP; a free account records nothing extra.",
             "type": "WATCH_SYNC_CONNECTION_SETTING_TYPE_BOOLEAN",
             "default_value": false
           }

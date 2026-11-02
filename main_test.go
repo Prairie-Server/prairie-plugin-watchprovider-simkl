@@ -13,7 +13,7 @@ func TestManifestDeclaresTheSimklProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load manifest: %v", err)
 	}
-	if parsed.GetPluginId() != "prairie.watchprovider.simkl" || parsed.GetVersion() != "0.4.0" {
+	if parsed.GetPluginId() != "prairie.watchprovider.simkl" || parsed.GetVersion() != "0.4.1" {
 		t.Fatalf("plugin = %q %q", parsed.GetPluginId(), parsed.GetVersion())
 	}
 	capabilities := parsed.GetCapabilities()
