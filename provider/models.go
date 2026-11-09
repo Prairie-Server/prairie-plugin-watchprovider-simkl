@@ -82,6 +82,7 @@ type simklMovieItem struct {
 
 type simklShowItem struct {
 	Status        string        `json:"status"`
+	AnimeType     string        `json:"anime_type"`
 	LastWatchedAt *time.Time    `json:"last_watched_at"`
 	Show          simklShow     `json:"show"`
 	Seasons       []simklSeason `json:"seasons"`

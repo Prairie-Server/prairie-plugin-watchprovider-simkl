@@ -23,6 +23,7 @@ type historyFake struct {
 	mu       sync.Mutex
 	movies   []map[string]any
 	shows    []map[string]any
+	anime    []map[string]any
 	notFound string
 	writes   []map[string]any
 	paths    []string
@@ -37,6 +38,8 @@ func (f *historyFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeJSON(f.t, w, map[string]any{"movies": f.movies})
 	case r.Method == http.MethodGet && r.URL.Path == "/sync/all-items/shows/completed":
 		writeJSON(f.t, w, map[string]any{"shows": f.shows})
+	case r.Method == http.MethodGet && r.URL.Path == "/sync/all-items/anime/completed":
+		writeJSON(f.t, w, map[string]any{"anime": f.anime})
 	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/sync/all-items/"):
 		writeJSON(f.t, w, `{}`)
 	case r.Method == http.MethodPost && (r.URL.Path == "/sync/history" || r.URL.Path == "/sync/history/remove"):
@@ -127,10 +130,11 @@ func TestMarkWatchedSendsSimklPayload(t *testing.T) {
 		movie["ids"].(map[string]any)["imdb"] != "tt1375666" {
 		t.Fatalf("movie payload = %#v", movie)
 	}
-	// A movie-only batch checks the movie list only.
+	// A movie-only batch checks the lists that hold movies: the movie list
+	// and the completed anime list, which holds anime movies.
 	for _, path := range fake.paths {
-		if strings.Contains(path, "shows") || strings.Contains(path, "anime") {
-			t.Fatalf("requests = %v, want no episode lists", fake.paths)
+		if strings.Contains(path, "shows") || strings.Contains(path, "anime/watching") {
+			t.Fatalf("requests = %v, want no episode-only lists", fake.paths)
 		}
 	}
 }
@@ -195,6 +199,42 @@ func TestMarkWatchedSkipsPlaysSimklAlreadyHas(t *testing.T) {
 	if len(fake.writes) != 1 || len(movies) != 1 || fake.writes[0]["shows"] != nil ||
 		movies[0].(map[string]any)["watched_at"] != "2026-05-05T12:00:00Z" {
 		t.Fatalf("writes = %#v, want only the rewatch", fake.writes)
+	}
+}
+
+// Simkl lists an anime movie on the completed anime list, so a movie-only
+// batch finds a play it already holds there and does not send it again.
+func TestMarkWatchedSkipsAnAnimeMovieSimklAlreadyHas(t *testing.T) {
+	fake := &historyFake{t: t, anime: []map[string]any{{
+		"status": "completed", "anime_type": "movie", "last_watched_at": "2024-02-03T04:05:06Z",
+		"show": map[string]any{"title": "Your Name.", "ids": map[string]any{"imdb": "tt5311514", "tmdb": 372058}},
+	}}}
+	server, _ := newTestServer(t, fake)
+	response := applyEvents(t, server,
+		moviePlay("anime-movie", time.Date(2024, 2, 3, 4, 5, 6, 0, time.UTC), map[string]string{"imdb": "tt5311514"}))
+	if got := resultsByID(response)["anime-movie"].GetStatus(); got != pluginv1.WatchSyncApplyStatus_WATCH_SYNC_APPLY_STATUS_NO_CHANGE {
+		t.Fatalf("status = %v, want no change", got)
+	}
+	if len(fake.writes) != 0 {
+		t.Fatalf("writes = %#v, want none", fake.writes)
+	}
+}
+
+// A movie and an episode can share a key (TMDB and TVDB number them
+// separately), so a play Simkl holds for one never stands in for the other.
+func TestMarkWatchedKeepsMoviesAndEpisodesWithOneKeyApart(t *testing.T) {
+	at := time.Date(2026, 5, 4, 13, 0, 0, 0, time.UTC)
+	fake := &historyFake{t: t, anime: []map[string]any{{
+		"status": "completed", "anime_type": "movie", "last_watched_at": at.Format(time.RFC3339),
+		"show": map[string]any{"title": "A movie", "ids": map[string]any{"tvdb": 67890}},
+	}}}
+	server, _ := newTestServer(t, fake)
+	response := applyEvents(t, server, episodePlay("episode", at))
+	if got := resultsByID(response)["episode"].GetStatus(); got != pluginv1.WatchSyncApplyStatus_WATCH_SYNC_APPLY_STATUS_APPLIED {
+		t.Fatalf("status = %v, want the episode sent", got)
+	}
+	if len(fake.writes) != 1 {
+		t.Fatalf("writes = %#v, want the episode", fake.writes)
 	}
 }
 
