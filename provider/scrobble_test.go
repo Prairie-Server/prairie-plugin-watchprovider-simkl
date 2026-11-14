@@ -14,6 +14,7 @@ import (
 type recordedRequest struct {
 	method        string
 	path          string
+	query         string
 	authorization string
 	apiKey        string
 	body          map[string]any
@@ -24,7 +25,7 @@ func recordingServer(t *testing.T, status int, body string) (*Server, *[]recorde
 	t.Helper()
 	var requests []recordedRequest
 	server, _ := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		request := recordedRequest{method: r.Method, path: r.URL.Path, authorization: r.Header.Get("Authorization"), apiKey: r.Header.Get("simkl-api-key")}
+		request := recordedRequest{method: r.Method, path: r.URL.Path, query: r.URL.RawQuery, authorization: r.Header.Get("Authorization"), apiKey: r.Header.Get("simkl-api-key")}
 		if r.Body != nil {
 			_ = json.NewDecoder(r.Body).Decode(&request.body)
 		}
