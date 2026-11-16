@@ -468,3 +468,82 @@ func TestSimklIDsDecodeNumbersAndStrings(t *testing.T) {
 		t.Fatalf("ids = %#v", ids)
 	}
 }
+
+// Simkl lists no episodes for a title on a completed list, so a show there is
+// a finished series, dated by its last watch. An anime movie is a watched
+// movie. Any other anime is skipped with a warning, since Simkl lists each
+// anime season as its own title with the whole series' ids.
+func TestListWatchedReportsCompletedTitlesWithoutEpisodesAsFinished(t *testing.T) {
+	fake := &fakeSimkl{t: t, bodies: map[string]string{
+		"/sync/activities":                 watchedActivitiesFixture,
+		"/sync/all-items/movies/completed": `{}`,
+		"/sync/all-items/shows/watching":   `{}`,
+		"/sync/all-items/shows/completed": `{"shows":[
+			{"status":"completed","last_watched_at":"2021-09-19T05:17:00Z","watched_episodes_count":153,"total_episodes_count":153,
+			 "show":{"title":"Brooklyn Nine-Nine","year":2013,"ids":{"tvdb":269586,"imdb":"tt2467372"}}}
+		]}`,
+		"/sync/all-items/anime/watching": `{}`,
+		"/sync/all-items/anime/completed": `{"anime":[
+			{"status":"completed","anime_type":"tv","last_watched_at":"2024-01-02T03:04:05Z","show":{"title":"Frieren","year":2023,"ids":{"tvdb":424536,"tmdb":209867}}},
+			{"status":"completed","anime_type":"movie","last_watched_at":"2024-02-03T04:05:06Z","show":{"title":"Your Name.","year":2016,"ids":{"tmdb":372058,"imdb":"tt5311514"}}},
+			{"status":"completed","anime_type":"ova","last_watched_at":"2024-03-04T05:06:07Z","show":{"title":"An OVA","year":2010,"ids":{"tmdb":42}}}
+		]}`,
+	}}
+	server, _ := newTestServer(t, fake)
+	result := listAll(t, server, kindWatched, "", 100)
+	got := map[string]row{}
+	for _, item := range result.items {
+		r := hostRow(item)
+		got[r.Kind+" "+r.ProviderItemKey] = r
+	}
+	want := map[string]time.Time{
+		"series tvdb:269586":   time.Date(2021, 9, 19, 5, 17, 0, 0, time.UTC),
+		"movie imdb:tt5311514": time.Date(2024, 2, 3, 4, 5, 6, 0, time.UTC),
+	}
+	if len(got) != len(want) {
+		t.Fatalf("rows = %v, want %v", got, want)
+	}
+	for key, at := range want {
+		if r, ok := got[key]; !ok || !r.LastWatchedAt.Equal(at) || r.PlayCount != 1 {
+			t.Fatalf("row %s = %#v (present %v), want watched at %v", key, r, ok, at)
+		}
+	}
+	if r := got["series tvdb:269586"]; r.Title != "Brooklyn Nine-Nine" || r.TVDBID != "269586" || r.IMDbID != "tt2467372" {
+		t.Fatalf("series row = %#v", r)
+	}
+	if want := []string{"simkl completed anime skipped because Simkl lists no episodes for it (2 items)"}; !reflect.DeepEqual(result.warnings, want) {
+		t.Fatalf("warnings = %q, want %q", result.warnings, want)
+	}
+}
+
+// Completed lists were read before finished titles were reported, so a cursor
+// that has recorded them under their old keys reads them once more.
+func TestListWatchedRereadsCompletedListsOnceAfterUpgrade(t *testing.T) {
+	fake := &fakeSimkl{t: t, bodies: map[string]string{
+		"/sync/activities":                watchedActivitiesFixture,
+		"/sync/all-items/shows/completed": `{}`,
+		"/sync/all-items/anime/completed": `{}`,
+	}}
+	server, _ := newTestServer(t, fake)
+	cursor := encodedCursor(t, map[string]string{
+		cursorInboundMoviesCompleted:    "2026-05-04T12:00:00Z",
+		cursorInboundShowsWatching:      "2026-05-04T12:05:00Z",
+		"simkl.inbound.shows.completed": "2026-05-04T12:10:00Z",
+		cursorInboundAnimeWatching:      "2026-05-04T12:15:00Z",
+		"simkl.inbound.anime.completed": "2026-05-04T12:20:00Z",
+	})
+	result := listAll(t, server, kindWatched, cursor, 100)
+	if fake.count("/sync/all-items/shows/completed") != 1 || fake.count("/sync/all-items/anime/completed") != 1 ||
+		len(fake.requests()) != 3 {
+		t.Fatalf("requests = %v, want each completed list read once in full", fake.requests())
+	}
+	for _, uri := range fake.requests() {
+		if strings.Contains(uri, "date_from") {
+			t.Fatalf("request %s, want a full read", uri)
+		}
+	}
+	listAll(t, server, kindWatched, result.cursor, 100)
+	if len(fake.requests()) != 4 {
+		t.Fatalf("requests = %v, want only the activities read on the next sync", fake.requests())
+	}
+}

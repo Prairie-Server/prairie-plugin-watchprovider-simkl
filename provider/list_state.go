@@ -11,16 +11,19 @@ import (
 
 // Cursor keys. A traversal's cursor is a JSON object of these keys and the
 // /sync/activities timestamps last read for them, the same per-list state the
-// built-in provider stored under the same names.
+// built-in provider stored, under the same names except the completed lists'.
 const (
 	cursorInboundMoviesCompleted = "simkl.inbound.movies.completed"
 	cursorInboundShowsWatching   = "simkl.inbound.shows.watching"
-	cursorInboundShowsCompleted  = "simkl.inbound.shows.completed"
 	cursorInboundAnimeWatching   = "simkl.inbound.anime.watching"
-	cursorInboundAnimeCompleted  = "simkl.inbound.anime.completed"
-	cursorProgressMovies         = "simkl.progress.movies"
-	cursorProgressShows          = "simkl.progress.shows"
-	cursorProgressAnime          = "simkl.progress.anime"
+	// The completed lists carry a version: a cursor that read them before
+	// finished titles were reported (see watchedStatesFromAllItems) reads
+	// them once more in full. legacyCompletedCursors are the keys it used.
+	cursorInboundShowsCompleted = "simkl.inbound.shows.completed.v2"
+	cursorInboundAnimeCompleted = "simkl.inbound.anime.completed.v2"
+	cursorProgressMovies        = "simkl.progress.movies"
+	cursorProgressShows         = "simkl.progress.shows"
+	cursorProgressAnime         = "simkl.progress.anime"
 
 	// A removal on Simkl moves a list's removed_from_list stamp. The watched
 	// import cannot apply removals, so a moved stamp is reported as a warning.
@@ -39,7 +42,16 @@ const (
 	warnWatchedEpisodeNoID  = "simkl watched episode skipped because it has no usable external id path"
 	warnPlaybackMovieNoID   = "simkl playback movie skipped because it has no usable external id"
 	warnPlaybackEpisodeNoID = "simkl playback episode skipped because it has no usable external id path"
+	// warnCompletedAnimeNoEpisodes reports a completed anime other than a
+	// movie that Simkl lists no episodes for. Simkl lists an anime season as
+	// its own title with the whole series' ids, so it cannot count as a
+	// finished series.
+	warnCompletedAnimeNoEpisodes = "simkl completed anime skipped because Simkl lists no episodes for it"
+	// warnCompletedShowNoID reports a finished show without a usable id.
+	warnCompletedShowNoID = "simkl completed show skipped because it has no usable external id"
 )
+
+var legacyCompletedCursors = []string{"simkl.inbound.shows.completed", "simkl.inbound.anime.completed"}
 
 // What a traversal step reads.
 const (
@@ -127,6 +139,9 @@ func (s *Server) planTraversal(ctx context.Context, acct account, kind pluginv1.
 		activities, fault := s.activities(ctx, acct)
 		if fault != nil {
 			return nil, fault
+		}
+		for _, key := range legacyCompletedCursors {
+			delete(token.Next, key)
 		}
 		for _, removed := range []struct{ key, activity string }{
 			{cursorRemovedMovies, activities.Movies.RemovedFromList},
@@ -358,6 +373,14 @@ func oldestCursor(values ...string) string {
 // watchedStatesFromAllItems maps an all-items read to watched movies and
 // episodes. Simkl reports the last watch only, so each title counts one play.
 // Rows without a usable id are skipped with a warning each.
+//
+// Simkl lists no episodes for a title on a completed list. With
+// allowShowTimestampFallback (the completed lists), such a title is reported
+// as finished: a show as watched state on the SERIES, which the host expands
+// to the episodes that had aired by its last watch, and an anime movie
+// (anime_type "movie") as a watched movie. Any other anime is skipped with a
+// warning: Simkl lists each anime season as its own title carrying the whole
+// series' ids, so a finished season would mark the whole series.
 func watchedStatesFromAllItems(payload simklAllItemsResponse, allowShowTimestampFallback bool) (states []*pluginv1.WatchSyncRemoteState, warnings []string) {
 	states = make([]*pluginv1.WatchSyncRemoteState, 0, len(payload.Movies))
 	for _, movie := range payload.Movies {
@@ -378,8 +401,20 @@ func watchedStatesFromAllItems(payload simklAllItemsResponse, allowShowTimestamp
 			Watched:         &pluginv1.WatchSyncRemoteWatchedState{PlayCount: 1, LastWatchedAt: timestamppb.New(*movie.LastWatchedAt)},
 		})
 	}
-	for _, shows := range [][]simklShowItem{payload.Shows, payload.Anime} {
-		for _, show := range shows {
+	for _, list := range []struct {
+		items []simklShowItem
+		anime bool
+	}{{payload.Shows, false}, {payload.Anime, true}} {
+		for _, show := range list.items {
+			if allowShowTimestampFallback && show.Status == "completed" && show.LastWatchedAt != nil && !hasEpisodes(show) {
+				state, warning := finishedTitleState(show, list.anime)
+				if warning != "" {
+					warnings = append(warnings, warning)
+				} else {
+					states = append(states, state)
+				}
+				continue
+			}
 			for _, season := range show.Seasons {
 				for _, episode := range season.Episodes {
 					watchedAt := episode.WatchedAt
@@ -407,6 +442,37 @@ func watchedStatesFromAllItems(payload simklAllItemsResponse, allowShowTimestamp
 		}
 	}
 	return states, warnings
+}
+
+func hasEpisodes(show simklShowItem) bool {
+	for _, season := range show.Seasons {
+		if len(season.Episodes) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// finishedTitleState reports a completed title Simkl lists no episodes for,
+// or the warning it is skipped with.
+func finishedTitleState(show simklShowItem, anime bool) (*pluginv1.WatchSyncRemoteState, string) {
+	watched := &pluginv1.WatchSyncRemoteWatchedState{PlayCount: 1, LastWatchedAt: timestamppb.New(*show.LastWatchedAt)}
+	if anime {
+		if strings.ToLower(strings.TrimSpace(show.AnimeType)) != simklAnimeTypeMovie {
+			return nil, warnCompletedAnimeNoEpisodes
+		}
+		movie := simklMovie{Title: show.Show.Title, Year: show.Show.Year, IDs: show.Show.IDs}
+		key := movieKey(movie.IDs)
+		if key == "" {
+			return nil, warnWatchedMovieNoID
+		}
+		return &pluginv1.WatchSyncRemoteState{ProviderItemKey: key, Media: movieMedia(movie), Watched: watched}, ""
+	}
+	key := showKey(show.Show.IDs)
+	if key == "" {
+		return nil, warnCompletedShowNoID
+	}
+	return &pluginv1.WatchSyncRemoteState{ProviderItemKey: key, Media: seriesMedia(show.Show), Watched: watched}, ""
 }
 
 // progressStatesFromPlayback maps paused playback. animeRows reports whether

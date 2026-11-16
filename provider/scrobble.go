@@ -10,6 +10,15 @@ import (
 // scrobble forwards a playback start, pause, or stop. Simkl answers a
 // completed stop it already recorded, for example a redelivered one, with
 // 409 already_watched, which means the stop is applied.
+//
+// With the profile's "Log rewatches" setting on, a stop of finished playback
+// is sent with allow_rewatch=yes, so finishing a title the account already
+// watched is recorded as a rewatch instead of ignored, as markWatched does.
+// Simkl ignores the flag on a first watch and absorbs a repeat within two days
+// of the last watch. An unfinished stop goes without the flag even when its
+// progress passes Simkl's watched threshold, so only playback Prairie counts as
+// finished logs a rewatch. The flag never goes on a start: Simkl can apply it
+// there to a different, earlier playback.
 func (s *Server) scrobble(ctx context.Context, acct account, event *pluginv1.WatchSyncEvent) (*pluginv1.WatchSyncApplyResult, *pluginv1.WatchSyncFault) {
 	var path string
 	switch event.GetOperation() {
@@ -19,6 +28,9 @@ func (s *Server) scrobble(ctx context.Context, acct account, event *pluginv1.Wat
 		path = "/scrobble/pause"
 	default:
 		path = "/scrobble/stop"
+		if acct.trackRewatches && event.GetCompleted() {
+			path += "?allow_rewatch=yes"
+		}
 	}
 	payload, fault := buildScrobblePayload(event)
 	if fault != nil {
